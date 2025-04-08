@@ -17,15 +17,22 @@ class _WeatherPage extends State<WeatherPage> {
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // Fetch weather
-  Future<void> _fetchWeather() async {
+  // Fetch weather with fallback city
+  Future<void> _fetchWeather([String? fallbackCity]) async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
     
     try {
-      String cityName = await _weatherServices.getCurrentCity();
+      String cityName;
+      try {
+        cityName = await _weatherServices.getCurrentCity();
+      } catch (e) {
+        // If geolocation fails, use fallback city or default
+        cityName = fallbackCity ?? 'London';
+      }
+      
       final weatherData = await _weatherServices.getWeather(cityName);
       setState(() {
         _weather = weatherData;
@@ -33,7 +40,7 @@ class _WeatherPage extends State<WeatherPage> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to fetch weather data. Please try again.';
+        _errorMessage = 'Failed to fetch weather data. Please try again or try another city.';
         _isLoading = false;
       });
       print('Error fetching weather: $e');
@@ -122,6 +129,22 @@ class _WeatherPage extends State<WeatherPage> {
                               textAlign: TextAlign.center,
                             ),
                             SizedBox(height: size.height * 0.02),
+                            // Add city search option
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  hintText: 'Enter city name',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                                onSubmitted: (city) => _fetchWeather(city),
+                              ),
+                            ),
+                            SizedBox(height: size.height * 0.02),
                             ElevatedButton(
                               onPressed: _fetchWeather,
                               style: ElevatedButton.styleFrom(
@@ -131,7 +154,7 @@ class _WeatherPage extends State<WeatherPage> {
                                 ),
                               ),
                               child: Text(
-                                'Retry',
+                                'Retry Current Location',
                                 style: GoogleFonts.poppins(
                                   color: bgColor,
                                   fontWeight: FontWeight.bold,
